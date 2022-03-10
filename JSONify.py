@@ -77,7 +77,7 @@ def getip(entry):
         logging.debug("getip: /{0}/".format(entry))
         ip = "unknown"
         # run regex putting ip in match group
-        rex = re.search("(\d+.\d+\.\d+.\d+)", entry)
+        rex = re.search("(\d+\.\d+\.\d+.\d+)", entry)
         if rex:
             ip = rex.group(1).strip()
         logging.debug("ip is {0}".format(name))
