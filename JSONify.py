@@ -122,12 +122,6 @@ try:
     )
     args = parser.parse_args()
 
-    print("JSONify.py")
-    print("    --path     : {0}".format(args.path))
-    print("    --query    : {0}".format(args.query))
-
-    logging.debug("Starting")
-
     # check file path is correct
     if not os.path.exists(args.path):
         throw("{0] is an invalid file path!".format(args.path))
@@ -163,8 +157,6 @@ try:
                 # this is not a cluster instance, add it
                 else:
                     JSON[name] = Entry(name, ip)
-
-    print("Parsed {0} nodes".format(len(JSON)))
 
     # Need to decide we want to print the data
     # If user requested a single node, we print that
