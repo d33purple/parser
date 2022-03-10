@@ -19,14 +19,29 @@ JSON = {}
 # Note we define the class with class members that mimic final JSON entries
 # to make export to JSON seemless
 class Entry:
-    def __init__(self, hostname, ip, version):
-        self.hostname = name
+    def __init__(self, name, ip):
+        self.name = name
         self.subjectAlternateNames = []
         self.clientauth = "false"
         self.requestor = "staticuser"
 
         # populate the subjectAlternateNames now
-        self.subjectAlternateNames.append(name)
+        self.subjectAlternateNames.append(ip)
+
+    # used when adding a cluster to this entry
+    def add_cluster(self, name, ip):
+
+        # cluster name gets inserted after other cluster names
+        # we can calculate the correct position easily
+        # and insert there
+        if len(self.subjectAlternateNames) == 1:
+            pos = 0
+        else:
+            pos = int((len(self.subjectAlternateNames) - 1) / 2)
+
+        self.subjectAlternateNames.insert(pos,name)     
+
+        # while cluster IP gets inserted to back of list
         self.subjectAlternateNames.append(ip)
 
     # override the print methods to return json for this object
@@ -38,11 +53,6 @@ class Entry:
 
     def encode(self):
         return self.__dict__
-
-    # JSON serializer
-    def toJSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__, 
-            sort_keys=True, indent=4)
 
 
 def getname(entry):
@@ -76,6 +86,7 @@ def getip(entry):
     except Exception as e:
         print("Caught exception in getname : {0}".format(e))
 
+# not used right now
 def getversion(entry):
     # retreives the IP from entry string
     try:
@@ -124,14 +135,34 @@ try:
     # open file and parse line by line
     with open(args.path) as file:
         for line in file:
+
+            # sanitize the line, we have some \t characters hanging out
+            line = line.replace("\t", " ")
+
             # check if this line is a valid entry
             if re.search("^\w+\s.*\s+\d+\.\d+\.\d+\.\d+\s.*$", line.strip()):
                 name = getname(line.strip())
                 ip = getip(line.strip())
-                version = getversion(line.strip())
 
-                # add new class instance to list
-                JSON[name] = Entry(name, ip, version)
+                # determine whether this is a cluster instance or not
+                # cluster instances have a -a,-b,-c, etc format at end of name
+                if re.search("-\w$", name):
+                    logging.debug("Adding cluster instance for {0}".format(name))
+
+                    # pull name from cluster name; this pulls out everything but the -a, -b, etc.
+                    # so we can organize the cluster name under the correct hoe
+                    rex = re.search("(.*)-\w$", name)
+                    if rex:
+                        parentname = rex.group(1).strip()
+                    else:
+                        throw("Unable to parse parent name from cluster name!")
+
+                    # add the cluster to the parent
+                    JSON[parentname].add_cluster(name, ip)
+
+                # this is not a cluster instance, add it
+                else:
+                    JSON[name] = Entry(name, ip)
 
     print("Parsed {0} nodes".format(len(JSON)))
 
