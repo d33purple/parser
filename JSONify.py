@@ -169,9 +169,12 @@ try:
             print("entry [{0}] was not found!".format(args.query))
     else:
 
-        print(json.dumps(JSON, default=lambda o: o.encode(), indent=4))
+        # enable if you want to dump dictionary as single JSON dump
+        #print(json.dumps(JSON, default=lambda o: o.encode(), indent=4))
 
-
+        # iterate dictionary and print all the values as JSOn
+        for key in JSON:
+            print(JSON[key])
 
 except Exception as e:
 
