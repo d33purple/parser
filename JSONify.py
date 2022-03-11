@@ -20,7 +20,9 @@ JSON = {}
 # to make export to JSON seemless
 class Entry:
     def __init__(self, hostname, ip):
-        self.hostname = hostname
+
+        # when setting hostname, add fqdn
+        self.hostname = "{0}.garmin.com".format(hostname)
         self.subjectAlternateNames = []
         self.clientauth = "false"
         self.requestor = "staticuser"
@@ -39,7 +41,8 @@ class Entry:
         else:
             pos = int((len(self.subjectAlternateNames) - 1) / 2)
 
-        self.subjectAlternateNames.insert(pos,hostname)     
+        # when adding alternate names, add fqdn
+        self.subjectAlternateNames.insert(pos, "{0}.garmin.com".format(hostname))     
 
         # while cluster IP gets inserted to back of list
         self.subjectAlternateNames.append(ip)
@@ -63,8 +66,7 @@ def gethostname(entry):
         # run regex putting hostname in match group
         rex = re.search("^\w+\s+([\w\d\-\._]*)", entry)
         if rex:
-            # add fqdn 
-            hostname = "{0}.garmin.com".format(rex.group(1).strip())
+            hostname = rex.group(1).strip()
         logging.debug("hostname is {0}".format(hostname))
         return hostname
 
