@@ -19,8 +19,8 @@ JSON = {}
 # Note we define the class with class members that mimic final JSON entries
 # to make export to JSON seemless
 class Entry:
-    def __init__(self, name, ip):
-        self.name = name
+    def __init__(self, hostname, ip):
+        self.hostname = hostname
         self.subjectAlternateNames = []
         self.clientauth = "false"
         self.requestor = "staticuser"
@@ -29,9 +29,9 @@ class Entry:
         self.subjectAlternateNames.append(ip)
 
     # used when adding a cluster to this entry
-    def add_cluster(self, name, ip):
+    def add_cluster(self, hostname, ip):
 
-        # cluster name gets inserted after other cluster names
+        # cluster hostname gets inserted after other cluster hostnames
         # we can calculate the correct position easily
         # and insert there
         if len(self.subjectAlternateNames) == 1:
@@ -39,7 +39,7 @@ class Entry:
         else:
             pos = int((len(self.subjectAlternateNames) - 1) / 2)
 
-        self.subjectAlternateNames.insert(pos,name)     
+        self.subjectAlternateNames.insert(pos,hostname)     
 
         # while cluster IP gets inserted to back of list
         self.subjectAlternateNames.append(ip)
@@ -55,20 +55,21 @@ class Entry:
         return self.__dict__
 
 
-def getname(entry):
-    # retreives a node name from entry string
+def gethostname(entry):
+    # retreives a node hostname from entry string
     try:
-        logging.debug("getname: /{0}/".format(entry))
-        name = "unknown"
-        # run regex putting name in match group
+        logging.debug("gethostname: /{0}/".format(entry))
+        hostname = "unknown"
+        # run regex putting hostname in match group
         rex = re.search("^\w+\s+([\w\d\-\._]*)", entry)
         if rex:
-            name = rex.group(1).strip()
-        logging.debug("name is {0}".format(name))
-        return name
+            # add fqdn 
+            hostname = "{0}.garmin.com".format(rex.group(1).strip())
+        logging.debug("hostname is {0}".format(hostname))
+        return hostname
 
     except Exception as e:
-        print("Caught exception in getname : {0}".format(e))
+        print("Caught exception in gethostname : {0}".format(e))
 
 
 def getip(entry):
@@ -80,11 +81,11 @@ def getip(entry):
         rex = re.search("(\d+\.\d+\.\d+\.\d+)", entry)
         if rex:
             ip = rex.group(1).strip()
-        logging.debug("ip is {0}".format(name))
+        logging.debug("ip is {0}".format(ip))
         return ip
 
     except Exception as e:
-        print("Caught exception in getname : {0}".format(e))
+        print("Caught exception in getip : {0}".format(e))
 
 # not used right now
 def getversion(entry):
@@ -96,11 +97,11 @@ def getversion(entry):
         rex = re.search("(\s([\w\d\-\._]+)$)", entry)
         if rex:
             version = rex.group(1).strip()
-        logging.debug("version is {0}".format(name))
+        logging.debug("version is {0}".format(version))
         return version
 
     except Exception as e:
-        print("Caught exception in getname : {0}".format(e))
+        print("Caught exception in getversion : {0}".format(e))
 
 # SCRIPT ENTRY POINT
 try:
@@ -135,28 +136,28 @@ try:
 
             # check if this line is a valid entry
             if re.search("^\w+\s.*\s+\d+\.\d+\.\d+\.\d+\s.*$", line.strip()):
-                name = getname(line.strip())
+                hostname = gethostname(line.strip())
                 ip = getip(line.strip())
 
                 # determine whether this is a cluster instance or not
-                # cluster instances have a -a,-b,-c, etc format at end of name
-                if re.search("-\w$", name):
-                    logging.debug("Adding cluster instance for {0}".format(name))
+                # cluster instances have a -a,-b,-c, etc format at end of hostname
+                if re.search("-\w$", hostname):
+                    logging.debug("Adding cluster instance for {0}".format(hostname))
 
-                    # pull name from cluster name; this pulls out everything but the -a, -b, etc.
-                    # so we can organize the cluster name under the correct hoe
-                    rex = re.search("(.*)-\w$", name)
+                    # pull hostname from cluster hostname; this pulls out everything but the -a, -b, etc.
+                    # so we can organize the cluster hostname under the correct parent node
+                    rex = re.search("(.*)-\w$", hostname)
                     if rex:
-                        parentname = rex.group(1).strip()
+                        parenthostname = rex.group(1).strip()
                     else:
-                        throw("Unable to parse parent name from cluster name!")
+                        throw("Unable to parse parent hostname from cluster hostname!")
 
                     # add the cluster to the parent
-                    JSON[parentname].add_cluster(name, ip)
+                    JSON[parenthostname].add_cluster(hostname, ip)
 
                 # this is not a cluster instance, add it
                 else:
-                    JSON[name] = Entry(name, ip)
+                    JSON[hostname] = Entry(hostname, ip)
 
     # Need to decide we want to print the data
     # If user requested a single node, we print that
